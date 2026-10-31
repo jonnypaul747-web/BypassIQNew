@@ -11,6 +11,8 @@ import {
   Check,
   Eye,
   EyeOff,
+  Activity,
+  RefreshCw,
 } from 'lucide-react';
 import { AppSettings, AiProvider, TranscriptionProvider, ResponseStyle } from '../../shared/types/index.js';
 
@@ -19,6 +21,8 @@ export const SettingsView: React.FC = () => {
   const [showAiKey, setShowAiKey] = useState(false);
   const [showAudioKey, setShowAudioKey] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
+  const [healthStatus, setHealthStatus] = useState<'idle' | 'checking' | 'connected' | 'disconnected'>('idle');
+  const [healthMessage, setHealthMessage] = useState('');
 
   useEffect(() => {
     if (!window.electronAPI) return;
@@ -32,6 +36,25 @@ export const SettingsView: React.FC = () => {
     setSettings(updated);
     setSavedToast(true);
     setTimeout(() => setSavedToast(false), 2500);
+  };
+
+  const checkHealth = async () => {
+    setHealthStatus('checking');
+    setHealthMessage('Checking...');
+    try {
+      const response = await fetch('https://bypassiqnew.onrender.com/api/health');
+      const data = await response.json();
+      if (data.status === 'ok' && data.database === 'connected') {
+        setHealthStatus('connected');
+        setHealthMessage('Server Online ✓');
+      } else {
+        setHealthStatus('disconnected');
+        setHealthMessage('Server Error');
+      }
+    } catch (error) {
+      setHealthStatus('disconnected');
+      setHealthMessage('Connection Failed');
+    }
   };
 
   if (!settings) {
@@ -58,6 +81,55 @@ export const SettingsView: React.FC = () => {
             {savedToast ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />}
             <span>{savedToast ? 'Settings Saved!' : 'Save Settings'}</span>
           </button>
+        </div>
+
+        {/* Server Health Check Section */}
+        <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-5 space-y-4 shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
+              <Activity className="w-4 h-4 text-emerald-400" />
+              <span>Backend Server Health</span>
+            </div>
+            <button
+              type="button"
+              onClick={checkHealth}
+              disabled={healthStatus === 'checking'}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {healthStatus === 'checking' ? (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  <span>Checking...</span>
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  <span>Check Health</span>
+                </>
+              )}
+            </button>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs">
+            {healthStatus === 'idle' && (
+              <span className="text-slate-400">Click "Check Health" to verify backend server status</span>
+            )}
+            {healthStatus === 'checking' && (
+              <span className="text-slate-400">Checking server connection...</span>
+            )}
+            {healthStatus === 'connected' && (
+              <span className="text-emerald-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                {healthMessage}
+              </span>
+            )}
+            {healthStatus === 'disconnected' && (
+              <span className="text-red-400 flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-red-400"></span>
+                {healthMessage}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Section 1: AI Provider & Models */}
