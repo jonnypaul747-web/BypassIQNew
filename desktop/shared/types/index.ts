@@ -184,8 +184,3 @@ export const IPC_CHANNELS = {
   WINDOW_HUD_STATE_UPDATE: 'window:hud-state-update',
 };
 
-// CommonJS export for preload
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { IPC_CHANNELS };
-}
-

@@ -32,23 +32,39 @@ export function InterviewView() {
   const [error, setError] = useState<string>('');
   const [questionCount, setQuestionCount] = useState(15);
   const [mode, setMode] = useState<'document' | 'live'>('document');
-  const [apiReady, setApiReady] = useState(false);
-
-  // Check if electronAPI is available
-  React.useEffect(() => {
-    const checkApi = setInterval(() => {
-      if (window.electronAPI) {
-        setApiReady(true);
-        clearInterval(checkApi);
+  const handleFileSelect = async () => {
+    try {
+      console.log('[Interview] Opening file dialog...');
+      // @ts-ignore
+      if (!window.electronAPI) {
+        console.error('[Interview] electronAPI is not available');
+        setError('Electron API not available. Please restart the application.');
+        return;
       }
-    }, 100);
 
-    return () => clearInterval(checkApi);
-  }, []);
+      // @ts-ignore
+      const result = await window.electronAPI.openFileDialog({
+        filters: [
+          { name: 'Documents', extensions: ['pdf', 'docx', 'txt', 'md'] },
+        ],
+      });
 
-  const handleFileSelect = (selectedFile: File) => {
-    setFile(selectedFile);
-    setError('');
+      console.log('[Interview] File dialog result:', result);
+
+      if (!result.canceled && result.filePaths.length > 0) {
+        const filePath = result.filePaths[0];
+        const file = {
+          name: filePath.split('/').pop() || 'document',
+          path: filePath,
+        } as any;
+        console.log('[Interview] File selected:', file);
+        setFile(file);
+        setError('');
+      }
+    } catch (err: any) {
+      console.error('[Interview] File dialog error:', err);
+      setError(err.message || 'Failed to open file dialog');
+    }
   };
 
   const handleGenerate = async () => {
@@ -57,8 +73,10 @@ export function InterviewView() {
       return;
     }
 
-    if (!apiReady || !window.electronAPI) {
-      setError('Electron API not ready. Please wait and try again.');
+    // @ts-ignore
+    if (!window.electronAPI) {
+      console.error('[Interview] electronAPI not available for generation');
+      setError('Electron API not available. Please restart the application.');
       return;
     }
 
@@ -68,8 +86,10 @@ export function InterviewView() {
 
     try {
       const filePath = file.path || (file as any).webkitRelativePath;
-      // The backend scans the uploaded document and generates the Q&A with a small token budget.
+      console.log('[Interview] Generating questions for file:', filePath, 'count:', questionCount);
+      // @ts-ignore
       const response = await window.electronAPI.generateInterviewQuestionsFromBackend(filePath, questionCount);
+      console.log('[Interview] Backend response:', response);
 
       if (response.success && response.data) {
         setResult({

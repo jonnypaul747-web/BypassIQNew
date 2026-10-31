@@ -47,7 +47,3 @@ export const IPC_CHANNELS = {
     WINDOW_SET_CONTENT_PROTECTION: 'window:set-content-protection',
     WINDOW_HUD_STATE_UPDATE: 'window:hud-state-update',
 };
-// CommonJS export for preload
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { IPC_CHANNELS };
-}

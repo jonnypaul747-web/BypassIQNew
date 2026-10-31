@@ -1,7 +1,6 @@
 import { app, BrowserWindow, ipcMain, globalShortcut, systemPreferences, session, dialog, desktopCapturer } from 'electron';
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
 import { IPC_CHANNELS } from '../../../shared/types/index.js';
 import { LICENSE_BACKEND_URL } from '../../../shared/config.js';
 import { LocalStorageManager } from '../../../services/storage/localStore.js';
@@ -11,8 +10,7 @@ import { DocumentService } from '../../../services/documents/documentService.js'
 import { TranscriptionService } from '../../../services/transcription/transcriptionService.js';
 import { QuestionDetector } from '../../../services/ai/questionDetector.js';
 import { InterviewService } from '../../../services/interview/interviewService.js';
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __dirname = path.dirname(new URL(import.meta.url).pathname);
 let mainWindow = null;
 let hudWindow = null;
 const store = new LocalStorageManager();
@@ -31,10 +29,14 @@ function isDev() {
     return process.env.NODE_ENV === 'development' || !app.isPackaged;
 }
 function getPreloadPath() {
-    return path.join(__dirname, '../preload/index.js');
+    const preloadPath = path.join(__dirname, '../preload/index.mjs');
+    console.log('[Main] Preload path:', preloadPath);
+    console.log('[Main] Preload exists:', fs.existsSync(preloadPath));
+    return preloadPath;
 }
 function createMainWindow() {
     const currentSettings = store.getSettings();
+    const preloadPath = getPreloadPath();
     mainWindow = new BrowserWindow({
         width: 1100,
         height: 750,
@@ -43,11 +45,24 @@ function createMainWindow() {
         title: 'JustCilledAI',
         backgroundColor: '#020617',
         webPreferences: {
-            preload: getPreloadPath(),
+            preload: preloadPath,
             contextIsolation: true,
             nodeIntegration: false,
             sandbox: false,
         },
+    });
+    // Log preload loading status
+    mainWindow.webContents.on('did-finish-load', () => {
+        console.log('[Main] Main window finished loading');
+    });
+    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL) => {
+        console.error('[Main] Main window failed to load:', errorCode, errorDescription, validatedURL);
+    });
+    // Log preload script errors
+    mainWindow.webContents.on('console-message', (event, level, message) => {
+        if (message.includes('[Preload]') || message.includes('electronAPI')) {
+            console.log(`[Renderer Console] [${level}]`, message);
+        }
     });
     // ALWAYS hide from screen capture (NSWindowSharingNone) — no conditional check
     try {

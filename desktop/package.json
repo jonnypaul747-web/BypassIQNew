@@ -5,12 +5,13 @@
   "main": "dist/app/electron/main/index.js",
   "type": "module",
   "scripts": {
-    "start": "npm run build && ELECTRON_RUN_AS_NODE=\"\" electron .",
+    "start": "npm run build && npm run rename-preload && ELECTRON_RUN_AS_NODE=\"\" electron .",
     "dev": "concurrently -k \"vite\" \"npm run dev:electron\"",
     "dev:electron": "wait-on tcp:5173 && ELECTRON_RUN_AS_NODE=\"\" VITE_DEV_SERVER_URL=http://localhost:5173 electron .",
-    "build": "npm run build:renderer && npm run build:electron",
+    "build": "npm run build:renderer && npm run build:electron && npm run rename-preload",
     "build:renderer": "vite build",
     "build:electron": "tsc -p tsconfig.electron.json",
+    "rename-preload": "node -e \"const fs=require('fs'); const src='dist/app/electron/preload/index.js'; const dst='dist/app/electron/preload/index.mjs'; if(fs.existsSync(src)){fs.renameSync(src,dst);console.log('Renamed preload to .mjs');}\"",
     "test": "vitest run",
     "package:mac": "npm run build && electron-builder --mac --arm64",
     "package:win": "npm run build && electron-builder --win --x64"
