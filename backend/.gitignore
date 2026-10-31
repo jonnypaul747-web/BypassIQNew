@@ -1,3 +1,4 @@
 node_modules/
 .tesseract-cache/
 eng.traineddata*
+.env
