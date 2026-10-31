@@ -61,8 +61,19 @@ async function extractDocument(buffer, fileName) {
 
   let raw;
   if (extension === '.pdf') {
-    const parsed = await pdf(buffer);
-    raw = parsed.text || '';
+    try {
+      const parsed = await pdf(buffer);
+      raw = parsed.text || '';
+    } catch (err) {
+      // PDF parsing failed (e.g., Bad XRef entry, corrupted PDF)
+      console.error('[Backend] PDF parsing failed:', err.message);
+      // If OCR is enabled, fall back to OCR. Otherwise, rethrow the error.
+      if (!ocr.enabled) {
+        throw new Error(`PDF parsing failed: ${err.message}. Enable OCR for scanned/corrupted PDFs.`);
+      }
+      // Clear raw text so OCR fallback will be triggered
+      raw = '';
+    }
   } else if (extension === '.docx') {
     const parsed = await mammoth.extractRawText({ buffer });
     raw = parsed.value || '';
@@ -73,8 +84,9 @@ async function extractDocument(buffer, fileName) {
   let text = normalizeText(raw);
   let usedOcr = false;
 
-  if (extension === '.pdf' && ocr.enabled && text.length < ocr.minTextChars) {
-    console.log(`[Backend] PDF text layer has ${text.length} chars — falling back to OCR`);
+  if (extension === '.pdf' && ocr.enabled && (!text || text.length < ocr.minTextChars)) {
+    const reason = !text ? 'no text layer (parsing failed or empty)' : `text layer has ${text.length} chars`;
+    console.log(`[Backend] PDF ${reason} — falling back to OCR`);
     try {
       const ocrText = await ocrPdfPages(buffer);
       const merged = normalizeText([text, ocrText].filter(Boolean).join('\n\n'));
