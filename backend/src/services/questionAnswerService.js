@@ -1,0 +1,146 @@
+const OpenAI = require('openai');
+const { ai } = require('../config');
+
+const CATEGORIES = ['Technical', 'Behavioral', 'Situational', 'Leadership', 'Role-specific'];
+
+/**
+ * The whole prompt is deliberately small: short instructions, no examples, no
+ * markdown, and answers capped by length. That is what keeps the token count low.
+ */
+function buildMessages({ text, documentName, count }) {
+  const system = [
+    'You turn a candidate document (resume, CV or job description) into interview Q&A.',
+    'Reply with STRICT JSON only, no markdown and no commentary.',
+    'Shape: {"questions":[{"question":"...","answer":"...","category":"...","difficulty":"Easy|Medium|Hard"}]}',
+    'Rules: exactly the requested number of questions, specific to the document, no duplicates,',
+    `each answer 1-2 sentences (max 30 words), category one of: ${CATEGORIES.join(', ')}.`,
+  ].join(' ');
+
+  const user = `Create exactly ${count} interview questions with short answers from this document.\n\nDOCUMENT (${documentName}):\n${text}`;
+
+  return { system, user };
+}
+
+function normalizeCategory(value) {
+  const raw = String(value || '').trim().toLowerCase();
+  const match = CATEGORIES.find((category) => category.toLowerCase() === raw);
+  return match || 'Technical';
+}
+
+/**
+ * Parses the model output defensively — it must survive a stray array wrapper
+ * or extra prose around the JSON.
+ */
+function parseQuestions(content, limit) {
+  const jsonStart = content.indexOf('{');
+  const jsonEnd = content.lastIndexOf('}');
+  const arrayStart = content.indexOf('[');
+  const arrayEnd = content.lastIndexOf(']');
+
+  let parsed;
+  if (jsonStart !== -1 && jsonEnd > jsonStart) {
+    parsed = JSON.parse(content.slice(jsonStart, jsonEnd + 1));
+  } else if (arrayStart !== -1 && arrayEnd > arrayStart) {
+    parsed = JSON.parse(content.slice(arrayStart, arrayEnd + 1));
+  } else {
+    throw new Error('No JSON found in AI response');
+  }
+
+  const list = Array.isArray(parsed) ? parsed : parsed.questions;
+  if (!Array.isArray(list)) {
+    throw new Error('AI response has no questions array');
+  }
+
+  return list
+    .map((item) => ({
+      question: String(item.question || '').trim(),
+      answer: String(item.answer || '').trim(),
+      category: normalizeCategory(item.category),
+      difficulty: ['Easy', 'Medium', 'Hard'].includes(item.difficulty) ? item.difficulty : 'Medium',
+    }))
+    .filter((item) => item.question && item.answer)
+    .slice(0, limit);
+}
+
+function usageBody(usage = {}) {
+  return {
+    inputTokens: usage.prompt_tokens ?? null,
+    outputTokens: usage.completion_tokens ?? null,
+    totalTokens: usage.total_tokens ?? null,
+  };
+}
+
+/**
+ * Generates question/answer pairs from already-extracted and already-truncated
+ * document text. Returns an HTTP-shaped result the route can send as-is.
+ */
+async function generateQuestions({ text, documentName, count }) {
+  if (!ai.apiKey) {
+    return {
+      status: 503,
+      body: {
+        success: false,
+        error: 'AI is not configured on the server. Set OPENAI_API_KEY and restart the backend.',
+      },
+    };
+  }
+
+  const client = new OpenAI({ apiKey: ai.apiKey });
+  const { system, user } = buildMessages({ text, documentName, count });
+
+  let completion;
+  try {
+    completion = await client.chat.completions.create({
+      model: ai.model,
+      temperature: 0.3,
+      max_tokens: ai.maxOutputTokens,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: system },
+        { role: 'user', content: user },
+      ],
+    });
+  } catch (err) {
+    console.error('[Backend] AI request failed:', err);
+    const reason =
+      err && err.status === 401
+        ? 'AI provider rejected the API key. Check OPENAI_API_KEY on the server.'
+        : (err && err.message) || 'AI request failed';
+    return { status: 502, body: { success: false, error: reason } };
+  }
+
+  const content = (completion.choices && completion.choices[0] && completion.choices[0].message.content) || '';
+
+  let questions;
+  try {
+    questions = parseQuestions(content, count);
+  } catch (err) {
+    console.error('[Backend] Could not parse AI response:', content.slice(0, 300));
+    return {
+      status: 502,
+      body: { success: false, error: 'AI returned an invalid response. Please try again.' },
+    };
+  }
+
+  if (questions.length === 0) {
+    return {
+      status: 502,
+      body: { success: false, error: 'AI returned no usable questions. Try a document with more detail.' },
+    };
+  }
+
+  return {
+    status: 200,
+    body: {
+      success: true,
+      documentName,
+      provider: 'openai',
+      model: completion.model || ai.model,
+      questionCount: questions.length,
+      usage: usageBody(completion.usage),
+      questions,
+    },
+  };
+}
+
+module.exports = { generateQuestions, CATEGORIES };
