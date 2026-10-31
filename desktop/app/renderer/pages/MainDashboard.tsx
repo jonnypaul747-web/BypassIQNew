@@ -10,6 +10,8 @@ import {
   Cpu,
   Layers,
   GraduationCap,
+  Activity,
+  RefreshCw,
 } from 'lucide-react';
 import { AssistantView } from './AssistantView.js';
 import { ScreenView } from './ScreenView.js';
@@ -24,6 +26,7 @@ type Tab = 'assistant' | 'screen' | 'documents' | 'interview' | 'history' | 'set
 export const MainDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<Tab>('assistant');
   const [settings, setSettings] = useState<AppSettings | null>(null);
+  const [healthStatus, setHealthStatus] = useState<'idle' | 'checking' | 'connected' | 'disconnected'>('idle');
 
   useEffect(() => {
     if (window.electronAPI) {
@@ -34,6 +37,21 @@ export const MainDashboard: React.FC = () => {
   const toggleHud = () => {
     if (window.electronAPI) {
       window.electronAPI.toggleFloatingHud();
+    }
+  };
+
+  const checkHealth = async () => {
+    setHealthStatus('checking');
+    try {
+      const response = await fetch('https://bypassiqnew.onrender.com/api/health');
+      const data = await response.json();
+      if (data.status === 'ok' && data.database === 'connected') {
+        setHealthStatus('connected');
+      } else {
+        setHealthStatus('disconnected');
+      }
+    } catch (error) {
+      setHealthStatus('disconnected');
     }
   };
 
@@ -96,6 +114,36 @@ export const MainDashboard: React.FC = () => {
               <span className="capitalize">{settings?.ai.provider || 'AI'}: {settings?.ai.modelName || 'ready'}</span>
             </span>
           </div>
+
+          {/* Health Check Button */}
+          <button
+            onClick={checkHealth}
+            disabled={healthStatus === 'checking'}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs transition-colors disabled:opacity-50 disabled:cursor-not-allowed border border-slate-700"
+            title="Check backend server health"
+          >
+            {healthStatus === 'checking' ? (
+              <>
+                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                <span>Checking...</span>
+              </>
+            ) : healthStatus === 'connected' ? (
+              <>
+                <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-emerald-400">Online</span>
+              </>
+            ) : healthStatus === 'disconnected' ? (
+              <>
+                <Activity className="w-3.5 h-3.5 text-red-400" />
+                <span className="text-red-400">Offline</span>
+              </>
+            ) : (
+              <>
+                <Activity className="w-3.5 h-3.5" />
+                <span>Health</span>
+              </>
+            )}
+          </button>
 
           {/* Open Floating HUD Window Button */}
           <button

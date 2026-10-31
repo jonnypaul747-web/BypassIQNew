@@ -27,6 +27,7 @@ export const SettingsView: React.FC = () => {
   useEffect(() => {
     if (!window.electronAPI) return;
     window.electronAPI.getSettings().then((s) => setSettings(s));
+    console.log('[SettingsView] Health check feature loaded');
   }, []);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -84,7 +85,7 @@ export const SettingsView: React.FC = () => {
         </div>
 
         {/* Server Health Check Section */}
-        <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-5 space-y-4 shadow-sm">
+        <div className="bg-slate-900/50 border border-slate-800/80 rounded-xl p-5 space-y-4 shadow-sm" style={{ border: '2px solid #10b981' }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-sm font-semibold text-slate-200">
               <Activity className="w-4 h-4 text-emerald-400" />
