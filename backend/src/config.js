@@ -7,7 +7,7 @@ const ROOT_DIR = path.join(__dirname, '..');
 module.exports = {
   port: process.env.PORT || 3000,
   rootDir: ROOT_DIR,
-  dbFile: path.join(ROOT_DIR, 'subscriptions.db'),
+  dbUrl: process.env.DATABASE_URL || 'postgresql://localhost:5432/justcilledai',
 
   // Shared secret for server-to-server calls (optional). Customers normally send
   // their license key instead — see src/middleware/apiKeyAuth.js.

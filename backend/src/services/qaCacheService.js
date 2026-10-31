@@ -25,14 +25,14 @@ function buildCacheKey({ documentHash, questionCount }) {
  */
 async function readCache(cacheKey) {
   try {
-    const row = await get('SELECT * FROM document_qa_cache WHERE cache_key = ?', [cacheKey]);
+    const row = await get('SELECT * FROM document_qa_cache WHERE cache_key = $1', [cacheKey]);
     if (!row) {
       return null;
     }
 
     // Hit counter is best-effort housekeeping; not worth failing the request over.
     run(
-      'UPDATE document_qa_cache SET hits = hits + 1, last_used_at = CURRENT_TIMESTAMP WHERE cache_key = ?',
+      'UPDATE document_qa_cache SET hits = hits + 1, last_used_at = CURRENT_TIMESTAMP WHERE cache_key = $1',
       [cacheKey]
     ).catch((err) => console.error('[Backend] Cache hit counter failed:', err));
 
@@ -74,12 +74,12 @@ async function writeCache({ cacheKey, documentName, questionCount, questions, us
     await run(
       `INSERT INTO document_qa_cache
          (cache_key, document_name, question_count, model, questions, input_tokens, output_tokens, total_tokens)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(cache_key) DO UPDATE SET
-         questions = excluded.questions,
-         input_tokens = excluded.input_tokens,
-         output_tokens = excluded.output_tokens,
-         total_tokens = excluded.total_tokens,
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       ON CONFLICT (cache_key) DO UPDATE SET
+         questions = EXCLUDED.questions,
+         input_tokens = EXCLUDED.input_tokens,
+         output_tokens = EXCLUDED.output_tokens,
+         total_tokens = EXCLUDED.total_tokens,
          last_used_at = CURRENT_TIMESTAMP`,
       [
         cacheKey,

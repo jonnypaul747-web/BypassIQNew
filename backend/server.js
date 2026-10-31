@@ -1,5 +1,5 @@
 const app = require('./src/app');
-const { initDatabase, dbFile } = require('./src/db');
+const { initDatabase, dbUrl } = require('./src/db');
 const { port } = require('./src/config');
 
 async function start() {
@@ -7,7 +7,7 @@ async function start() {
 
   app.listen(port, () => {
     console.log(`[Backend] License server running on port ${port}`);
-    console.log(`[Backend] Database: ${dbFile}`);
+    console.log(`[Backend] Database: ${dbUrl}`);
   });
 }
 

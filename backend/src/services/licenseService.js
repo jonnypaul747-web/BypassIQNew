@@ -26,7 +26,7 @@ async function validateLicenseKey(licenseKey) {
     row = await get(
       'SELECT lk.*, s.status as subscription_status FROM license_keys lk ' +
         'JOIN subscriptions s ON lk.subscription_id = s.id ' +
-        'WHERE lk.key_hash = ? AND lk.is_active = 1',
+        'WHERE lk.key_hash = $1 AND lk.is_active = true',
       [hashLicenseKey(licenseKey)]
     );
   } catch (err) {

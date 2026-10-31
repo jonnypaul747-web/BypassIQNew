@@ -9,7 +9,7 @@ const { generateLicenseKey, hashLicenseKey } = require('./licenseService');
 async function findOrCreateUser(email) {
   let existing;
   try {
-    existing = await get('SELECT id FROM users WHERE email = ?', [email]);
+    existing = await get('SELECT id FROM users WHERE email = $1', [email]);
   } catch (err) {
     console.error('[Backend] Error finding user:', err);
     return { error: 'Database error' };
@@ -21,7 +21,7 @@ async function findOrCreateUser(email) {
 
   const userId = crypto.randomUUID();
   try {
-    await run('INSERT INTO users (id, email) VALUES (?, ?)', [userId, email]);
+    await run('INSERT INTO users (id, email) VALUES ($1, $2)', [userId, email]);
   } catch (err) {
     // Not fatal on its own: the subscription insert below will fail on the foreign key.
     console.error('[Backend] Error creating user:', err);
@@ -45,7 +45,7 @@ async function createSubscription(email, durationDays = 30) {
 
   try {
     await run(
-      'INSERT INTO subscriptions (id, user_id, status, current_period_end) VALUES (?, ?, ?, ?)',
+      'INSERT INTO subscriptions (id, user_id, status, current_period_end) VALUES ($1, $2, $3, $4)',
       [subscriptionId, userId, 'active', expiresAt]
     );
   } catch (err) {
@@ -58,7 +58,7 @@ async function createSubscription(email, durationDays = 30) {
 
   try {
     await run(
-      'INSERT INTO license_keys (id, key_hash, user_id, subscription_id, expires_at) VALUES (?, ?, ?, ?, ?)',
+      'INSERT INTO license_keys (id, key_hash, user_id, subscription_id, expires_at) VALUES ($1, $2, $3, $4, $5)',
       [licenseKeyId, hashLicenseKey(licenseKey), userId, subscriptionId, expiresAt]
     );
   } catch (err) {
@@ -81,7 +81,7 @@ async function getLatestSubscription(userId) {
   let row;
   try {
     row = await get(
-      'SELECT * FROM subscriptions WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
+      'SELECT * FROM subscriptions WHERE user_id = $1 ORDER BY created_at DESC LIMIT 1',
       [userId]
     );
   } catch (err) {
