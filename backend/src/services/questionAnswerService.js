@@ -1,4 +1,4 @@
-const OpenAI = require('openai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { ai } = require('../config');
 
 const CATEGORIES = ['Technical', 'Behavioral', 'Situational', 'Leadership', 'Role-specific'];
@@ -7,18 +7,15 @@ const CATEGORIES = ['Technical', 'Behavioral', 'Situational', 'Leadership', 'Rol
  * The whole prompt is deliberately small: short instructions, no examples, no
  * markdown, and answers capped by length. That is what keeps the token count low.
  */
-function buildMessages({ text, documentName, count }) {
-  const system = [
+function buildPrompt({ text, documentName, count }) {
+  return [
     'You turn a candidate document (resume, CV or job description) into interview Q&A.',
     'Reply with STRICT JSON only, no markdown and no commentary.',
     'Shape: {"questions":[{"question":"...","answer":"...","category":"...","difficulty":"Easy|Medium|Hard"}]}',
     'Rules: exactly the requested number of questions, specific to the document, no duplicates,',
     `each answer 1-2 sentences (max 30 words), category one of: ${CATEGORIES.join(', ')}.`,
+    `Create exactly ${count} interview questions with short answers from this document.\n\nDOCUMENT (${documentName}):\n${text}`,
   ].join(' ');
-
-  const user = `Create exactly ${count} interview questions with short answers from this document.\n\nDOCUMENT (${documentName}):\n${text}`;
-
-  return { system, user };
 }
 
 function normalizeCategory(value) {
@@ -64,52 +61,44 @@ function parseQuestions(content, limit) {
 
 function usageBody(usage = {}) {
   return {
-    inputTokens: usage.prompt_tokens ?? null,
-    outputTokens: usage.completion_tokens ?? null,
-    totalTokens: usage.total_tokens ?? null,
+    inputTokens: usage.promptTokenCount ?? null,
+    outputTokens: usage.candidatesTokenCount ?? null,
+    totalTokens: usage.totalTokenCount ?? null,
   };
 }
 
-/**
- * Generates question/answer pairs from already-extracted and already-truncated
- * document text. Returns an HTTP-shaped result the route can send as-is.
- */
 async function generateQuestions({ text, documentName, count }) {
   if (!ai.apiKey) {
     return {
       status: 503,
       body: {
         success: false,
-        error: 'AI is not configured on the server. Set OPENAI_API_KEY and restart the backend.',
+        error: 'AI is not configured on the server. Set GEMINI_API_KEY and restart the backend.',
       },
     };
   }
 
-  const client = new OpenAI({ apiKey: ai.apiKey });
-  const { system, user } = buildMessages({ text, documentName, count });
+  const genAI = new GoogleGenerativeAI(ai.apiKey);
+  const model = genAI.getGenerativeModel({ model: ai.model });
+  const prompt = buildPrompt({ text, documentName, count });
 
-  let completion;
+  let result;
   try {
-    completion = await client.chat.completions.create({
-      model: ai.model,
-      temperature: 0.3,
-      max_tokens: ai.maxOutputTokens,
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
+    result = await model.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: ai.maxOutputTokens,
+        responseMimeType: 'application/json',
+      },
     });
   } catch (err) {
     console.error('[Backend] AI request failed:', err);
-    const reason =
-      err && err.status === 401
-        ? 'AI provider rejected the API key. Check OPENAI_API_KEY on the server.'
-        : (err && err.message) || 'AI request failed';
+    const reason = (err && err.message) || 'AI request failed';
     return { status: 502, body: { success: false, error: reason } };
   }
 
-  const content = (completion.choices && completion.choices[0] && completion.choices[0].message.content) || '';
+  const content = result.response.text() || '';
 
   let questions;
   try {
@@ -134,10 +123,10 @@ async function generateQuestions({ text, documentName, count }) {
     body: {
       success: true,
       documentName,
-      provider: 'openai',
-      model: completion.model || ai.model,
+      provider: 'gemini',
+      model: ai.model,
       questionCount: questions.length,
-      usage: usageBody(completion.usage),
+      usage: usageBody(result.response.usageMetadata),
       questions,
     },
   };
