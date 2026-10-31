@@ -28,30 +28,6 @@ async function run(sql, params = []) {
 }
 
 const SCHEMA = [
-  `CREATE TABLE IF NOT EXISTS users (
-    id TEXT PRIMARY KEY,
-    email TEXT UNIQUE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-  )`,
-  `CREATE TABLE IF NOT EXISTS subscriptions (
-    id TEXT PRIMARY KEY,
-    user_id TEXT,
-    status TEXT,
-    current_period_end TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id)
-  )`,
-  `CREATE TABLE IF NOT EXISTS license_keys (
-    id TEXT PRIMARY KEY,
-    key_hash TEXT UNIQUE,
-    user_id TEXT,
-    subscription_id TEXT,
-    expires_at TIMESTAMP,
-    is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (subscription_id) REFERENCES subscriptions(id)
-  )`,
   `CREATE TABLE IF NOT EXISTS document_qa_cache (
     cache_key TEXT PRIMARY KEY,
     document_name TEXT,

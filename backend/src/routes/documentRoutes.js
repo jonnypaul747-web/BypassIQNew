@@ -4,8 +4,6 @@ const { ai } = require('../config');
 const { extractDocument, truncateForPrompt } = require('../services/documentTextService');
 const { generateQuestions } = require('../services/questionAnswerService');
 const { hashDocument, buildCacheKey, readCache, writeCache } = require('../services/qaCacheService');
-const { requireApiKey } = require('../middleware/apiKeyAuth');
-const { rateLimitByClient } = require('../middleware/rateLimit');
 
 const router = express.Router();
 
@@ -16,11 +14,10 @@ const readDocument = express.raw({ type: 'application/octet-stream', limit: '15m
  * POST /api/documents/questions?count=10
  * Body:    raw file bytes (Content-Type: application/octet-stream)
  * Headers: X-File-Name: url-encoded file name, e.g. resume.pdf
- *          X-API-Key:   license key (or the server API_KEY)
  * Returns: { success, cached, ocrUsed, documentName, provider, model, questionCount, usage, questions }
- * Errors:  401 missing/invalid key, 429 rate limit, 400 bad file, 503 no AI key, 502 AI failure
+ * Errors:  400 bad file, 503 no AI key, 502 AI failure
  */
-router.post('/documents/questions', readDocument, requireApiKey, rateLimitByClient, async (req, res) => {
+router.post('/documents/questions', readDocument, async (req, res) => {
   const fileName = decodeURIComponent(req.get('X-File-Name') || req.query.file || '').trim();
   const requested = Number(req.query.count) || 10;
   const count = Math.min(Math.max(requested, 1), ai.maxQuestions);
