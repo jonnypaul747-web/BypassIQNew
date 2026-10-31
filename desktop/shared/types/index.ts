@@ -167,13 +167,6 @@ export const IPC_CHANNELS = {
   // Dialog
   DIALOG_OPEN_FILE: 'dialog:open-file' as const,
 
-  // License
-  LICENSE_VALIDATE: 'license:validate',
-  LICENSE_STORE: 'license:store',
-  LICENSE_STATUS: 'license:status',
-  LICENSE_CLEAR: 'license:clear',
-  LICENSE_REMAINING_DAYS: 'license:remaining-days',
-
   // Storage & Settings
   SETTINGS_GET: 'settings:get',
   SETTINGS_SAVE: 'settings:save',
@@ -189,5 +182,10 @@ export const IPC_CHANNELS = {
   WINDOW_SET_OPACITY: 'window:set-opacity',
   WINDOW_SET_CONTENT_PROTECTION: 'window:set-content-protection',
   WINDOW_HUD_STATE_UPDATE: 'window:hud-state-update',
-} as const;
+};
+
+// CommonJS export for preload
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { IPC_CHANNELS };
+}
 

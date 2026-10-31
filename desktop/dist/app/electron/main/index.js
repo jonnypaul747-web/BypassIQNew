@@ -11,7 +11,6 @@ import { DocumentService } from '../../../services/documents/documentService.js'
 import { TranscriptionService } from '../../../services/transcription/transcriptionService.js';
 import { QuestionDetector } from '../../../services/ai/questionDetector.js';
 import { InterviewService } from '../../../services/interview/interviewService.js';
-import { LicenseService } from '../../../services/license/licenseService.js';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 let mainWindow = null;
@@ -23,7 +22,6 @@ const screenService = new ScreenService();
 const docService = new DocumentService();
 const transcriptionService = new TranscriptionService(settings.audio.transcriptionProvider, settings.audio.apiKey);
 const interviewService = new InterviewService(aiService, docService);
-const licenseService = new LicenseService(store);
 // Which screen/window the user picked for system-audio capture (null = primary screen).
 let pendingCaptureSourceId = null;
 let activeAbortController = null;
@@ -204,16 +202,6 @@ function setupIpcHandlers() {
     });
     // --- AI & Generation ---
     async function handleGenerateAnswer(params) {
-        // Check license before allowing generation
-        const isLicenseValid = await licenseService.isLicenseValid();
-        if (!isLicenseValid) {
-            return {
-                success: false,
-                id: '',
-                answer: '',
-                error: 'License expired or invalid. Please subscribe to continue using JustCilledAI.'
-            };
-        }
         const currentSettings = store.getSettings();
         const style = params.style || currentSettings.ai.responseStyle || 'short';
         const id = `ans_${Date.now()}`;
@@ -362,21 +350,11 @@ function setupIpcHandlers() {
         try {
             const fileBuffer = fs.readFileSync(filePath);
             const fileName = path.basename(filePath);
-            // The backend only generates Q&A for licensed clients (see backend/src/middleware/apiKeyAuth.js).
-            const storedLicense = await licenseService.getStoredLicense();
-            const licenseKey = storedLicense && storedLicense.key ? storedLicense.key : '';
-            if (!licenseKey) {
-                return {
-                    success: false,
-                    error: 'Document Q&A needs an active license. Activate a license key first.',
-                };
-            }
             const response = await fetch(`${LICENSE_BACKEND_URL}/api/documents/questions?count=${encodeURIComponent(String(questionCount))}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/octet-stream',
                     'X-File-Name': encodeURIComponent(fileName),
-                    'X-API-Key': licenseKey,
                 },
                 body: fileBuffer,
             });
@@ -409,29 +387,6 @@ function setupIpcHandlers() {
             ],
         });
         return result;
-    });
-    // --- License ---
-    ipcMain.handle(IPC_CHANNELS.LICENSE_VALIDATE, async (_, key) => {
-        return await licenseService.validateLicense(key);
-    });
-    ipcMain.handle(IPC_CHANNELS.LICENSE_STORE, async (_, key, expiresAt) => {
-        await licenseService.storeLicense(key, expiresAt);
-        return { success: true };
-    });
-    ipcMain.handle(IPC_CHANNELS.LICENSE_STATUS, async () => {
-        const license = await licenseService.getStoredLicense();
-        return {
-            hasLicense: !!license,
-            expiresAt: license?.expiresAt,
-            isValid: license?.isValid
-        };
-    });
-    ipcMain.handle(IPC_CHANNELS.LICENSE_CLEAR, async () => {
-        await licenseService.clearLicense();
-        return { success: true };
-    });
-    ipcMain.handle(IPC_CHANNELS.LICENSE_REMAINING_DAYS, async () => {
-        return await licenseService.getRemainingDays();
     });
     // --- Floating HUD Window Management ---
     ipcMain.handle(IPC_CHANNELS.WINDOW_TOGGLE_HUD, (_, visible) => {

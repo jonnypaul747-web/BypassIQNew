@@ -42,12 +42,6 @@ const api = {
     generateInterviewQuestionsFromBackend: (filePath, questionCount) => ipcRenderer.invoke(IPC_CHANNELS.INTERVIEW_GENERATE_FROM_BACKEND, filePath, questionCount),
     // File Dialog
     openFileDialog: (options) => ipcRenderer.invoke('dialog:openFile', options),
-    // License
-    validateLicense: (key) => ipcRenderer.invoke(IPC_CHANNELS.LICENSE_VALIDATE, key),
-    storeLicense: (key, expiresAt) => ipcRenderer.invoke(IPC_CHANNELS.LICENSE_STORE, key, expiresAt),
-    getLicenseStatus: () => ipcRenderer.invoke(IPC_CHANNELS.LICENSE_STATUS),
-    clearLicense: () => ipcRenderer.invoke(IPC_CHANNELS.LICENSE_CLEAR),
-    getRemainingDays: () => ipcRenderer.invoke(IPC_CHANNELS.LICENSE_REMAINING_DAYS),
     // Storage
     getSettings: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET),
     saveSettings: (settings) => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_SAVE, settings),

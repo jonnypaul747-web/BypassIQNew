@@ -91,111 +91,6 @@ export interface ElectronAPI {
     filePaths: string[];
   }>;
 
-  // License
-  validateLicense: (key: string) => Promise<boolean>;
-  storeLicense: (key: string, expiresAt: number) => Promise<{ success: boolean }>;
-  getLicenseStatus: () => Promise<{ hasLicense: boolean; expiresAt?: number; isValid?: boolean }>;
-  clearLicense: () => Promise<{ success: boolean }>;
-  getRemainingDays: () => Promise<number>;
-
-  // Settings & Storage
-  getSettings: () => Promise<AppSettings>;
-  saveSettings: (settings: Partial<AppSettings>) => Promise<AppSettings>;
-  getHistory: () => Promise<SessionHistoryItem[]>;
-  deleteHistoryItem: (id: string) => Promise<void>;
-  clearHistory: () => Promise<void>;
-  exportHistory: () => Promise<string>;
-
-  // Window & HUD
-  toggleFloatingHud: (visible?: boolean) => Promise<boolean>;
-  setAlwaysOnTop: (always: boolean) => Promise<void>;
-  setCompactMode: (compact: boolean) => Promise<void>;
-  setOpacity: (opacity: number) => Promise<void>;
-  setAppIcon: (iconPath: string) => Promise<boolean>;
-  onHudStateUpdate: (callback: (state: { isHud: boolean; compact: boolean; alwaysOnTop: boolean; opacity: number }) => void) => () => void;
-}
-
-export interface ElectronAPI {
-  // Audio & Transcription
-  startAudio: (config?: any) => Promise<{ success: boolean; error?: string }>;
-  pauseAudio: () => Promise<void>;
-  resumeAudio: () => Promise<void>;
-  stopAudio: () => Promise<void>;
-  sendAudioChunk: (buffer: ArrayBuffer) => void;
-  sendTranscriptEvent: (text: string, isFinal: boolean, speaker?: string) => void;
-  onAudioStateChange: (callback: (state: string) => void) => () => void;
-  onTranscriptionSegment: (callback: (segment: TranscriptionSegment) => void) => () => void;
-
-  // AI & Generation
-  generateAnswer: (params: {
-    question: string;
-    style?: ResponseStyle;
-    screenContext?: string;
-    documentId?: string;
-  }) => Promise<{ success: boolean; id: string; answer: string; error?: string }>;
-  cancelGeneration: () => Promise<void>;
-  onAiStreamChunk: (callback: (data: { id: string; token: string; isComplete: boolean; error?: string }) => void) => () => void;
-
-  // Screen & OCR
-  listDisplaySources: () => Promise<DisplaySource[]>;
-  setCaptureSource: (sourceId: string | null) => Promise<string | null>;
-  captureAndOcr: (sourceId?: string) => Promise<{ ocrResult: OcrResult; imagePath: string; isDuplicate: boolean }>;
-  analyzeScreen: (params: { sourceId?: string; prompt?: string }) => Promise<{ success: boolean; answer: string; ocrText: string; error?: string }>;
-
-  // Documents
-  importDocument: (filePath: string) => Promise<{ success: boolean; document?: ContextDocument; error?: string }>;
-  listDocuments: () => Promise<ContextDocument[]>;
-  removeDocument: (id: string) => Promise<void>;
-  toggleDocument: (id: string, enabled: boolean) => Promise<void>;
-
-  // Interview Questions
-  generateInterviewQuestions: (filePath: string, questionCount?: number) => Promise<{
-    success: boolean;
-    data?: {
-      questions: Array<{
-        question: string;
-        answer: string;
-        category: string;
-        difficulty: 'Easy' | 'Medium' | 'Hard';
-      }>;
-      aiProvider: string;
-      aiModel: string;
-      documentName: string;
-      generatedAt: number;
-    };
-    error?: string;
-  }>;
-  getAiProviderInfo: () => Promise<{ provider: string; model: string }>;
-  generateInterviewQuestionsFromBackend: (filePath: string, questionCount?: number) => Promise<{
-    success: boolean;
-    data?: {
-      questions: Array<{
-        question: string;
-        answer: string;
-        category: string;
-        difficulty: 'Easy' | 'Medium' | 'Hard';
-      }>;
-      documentName: string;
-      provider: string;
-      model: string;
-      questionCount: number;
-      cached: boolean;
-      ocrUsed?: boolean;
-      usage: {
-        inputTokens: number | null;
-        outputTokens: number | null;
-        totalTokens: number | null;
-      };
-    };
-    error?: string;
-  }>;
-
-  // File Dialog
-  openFileDialog: (options?: { filters?: Array<{ name: string; extensions: string[] }> }) => Promise<{
-    canceled: boolean;
-    filePaths: string[];
-  }>;
-
   // Settings & Storage
   getSettings: () => Promise<AppSettings>;
   saveSettings: (settings: Partial<AppSettings>) => Promise<AppSettings>;
@@ -261,13 +156,6 @@ const api: ElectronAPI = {
 
   // File Dialog
   openFileDialog: (options) => ipcRenderer.invoke('dialog:openFile', options),
-
-  // License
-  validateLicense: (key) => ipcRenderer.invoke(IPC_CHANNELS.LICENSE_VALIDATE, key),
-  storeLicense: (key, expiresAt) => ipcRenderer.invoke(IPC_CHANNELS.LICENSE_STORE, key, expiresAt),
-  getLicenseStatus: () => ipcRenderer.invoke(IPC_CHANNELS.LICENSE_STATUS),
-  clearLicense: () => ipcRenderer.invoke(IPC_CHANNELS.LICENSE_CLEAR),
-  getRemainingDays: () => ipcRenderer.invoke(IPC_CHANNELS.LICENSE_REMAINING_DAYS),
 
   // Storage
   getSettings: () => ipcRenderer.invoke(IPC_CHANNELS.SETTINGS_GET),
