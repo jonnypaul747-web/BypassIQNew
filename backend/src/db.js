@@ -1,6 +1,11 @@
 const { Pool } = require('pg');
 const { dbUrl } = require('./config');
 
+// Validate DATABASE_URL in production
+if (process.env.NODE_ENV === 'production' && !process.env.DATABASE_URL) {
+  throw new Error('DATABASE_URL environment variable is required in production');
+}
+
 const pool = new Pool({
   connectionString: dbUrl,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
