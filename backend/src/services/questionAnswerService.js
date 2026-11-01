@@ -1,5 +1,6 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { OpenAI } = require('openai');
+const CATEGORIES = ['Technical', 'Behavioral', 'Situational', 'Leadership', 'Role-specific'];
+
 const { ai } = require('../config');
 
 /**
