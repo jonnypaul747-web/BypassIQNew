@@ -27,7 +27,7 @@ module.exports = {
   ai: {
     apiKey: process.env.GEMINI_API_KEY || '',
     provider: process.env.AI_PROVIDER || 'gemini',
-    model: process.env.AI_MODEL || 'gemini-1.5-flash',
+    model: process.env.AI_MODEL || 'gemini-3.8-flash',
     maxDocumentChars: Number(process.env.AI_MAX_DOCUMENT_CHARS) || 6000,
     maxOutputTokens: Number(process.env.AI_MAX_OUTPUT_TOKENS) || 1400,
     maxQuestions: Number(process.env.AI_MAX_QUESTIONS) || 15,
