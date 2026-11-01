@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const { initDatabase, dbUrl } = require('./src/db');
+const { port } = require('./src/config');
 const app = require('./src/app');
 
 
