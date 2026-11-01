@@ -1,6 +1,8 @@
-const app = require('./src/app');
+require('dotenv').config();
+
 const { initDatabase, dbUrl } = require('./src/db');
-const { port } = require('./src/config');
+const app = require('./src/app');
+
 
 async function start() {
   await initDatabase();
