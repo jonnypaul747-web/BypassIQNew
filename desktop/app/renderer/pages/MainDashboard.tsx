@@ -20,6 +20,7 @@ import { HistoryView } from './HistoryView.js';
 import { SettingsView } from './SettingsView.js';
 import { InterviewView } from './InterviewView.js';
 import { AppSettings } from '../../shared/types/index.js';
+import { LICENSE_BACKEND_URL } from '@shared/config';
 
 type Tab = 'assistant' | 'screen' | 'documents' | 'interview' | 'history' | 'settings';
 
@@ -43,7 +44,7 @@ export const MainDashboard: React.FC = () => {
   const checkHealth = async () => {
     setHealthStatus('checking');
     try {
-      const response = await fetch('https://bypassiqnew.onrender.com/api/health');
+      const response = await fetch(`${LICENSE_BACKEND_URL}/api/health`);
       const data = await response.json();
       if (data.status === 'ok' && data.database === 'connected') {
         setHealthStatus('connected');
@@ -68,9 +69,9 @@ export const MainDashboard: React.FC = () => {
     <div className="flex flex-col h-screen w-screen bg-slate-950 text-slate-100 select-none overflow-hidden">
       {/* Top Application Header Bar */}
       <header className="h-14 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur px-4 flex items-center justify-between flex-shrink-0">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 min-w-0">
           {/* Logo */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
               <Sparkles className="w-4 h-4" />
             </div>
@@ -87,12 +88,12 @@ export const MainDashboard: React.FC = () => {
           <div className="h-5 w-px bg-slate-800 mx-1" />
 
           {/* Navigation Tabs */}
-          <nav className="flex items-center gap-1">
+          <nav className="flex items-center gap-1 min-w-0 overflow-x-auto">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap flex-shrink-0 ${
                   activeTab === tab.id
                     ? 'bg-slate-800 text-emerald-400 shadow-sm border border-slate-700/60'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
@@ -106,7 +107,7 @@ export const MainDashboard: React.FC = () => {
         </div>
 
         {/* Right Status Badges & HUD Launcher */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 flex-shrink-0">
           {/* Status Pills */}
           <div className="hidden md:flex items-center gap-2 text-[11px] text-slate-400">
             <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-900 border border-slate-800">

@@ -4,6 +4,11 @@ import path from 'path';
 
 export default defineConfig({
   plugins: [react()],
+  // shared/config.ts reads process.env at runtime in Electron main; the renderer
+  // runs in the browser, so Vite bakes the same value in at build time.
+  define: {
+    'process.env.LICENSE_BACKEND_URL': JSON.stringify(process.env.LICENSE_BACKEND_URL || ''),
+  },
   base: './',
   root: '.',
   publicDir: 'public',

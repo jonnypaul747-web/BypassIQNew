@@ -14,7 +14,8 @@ import {
   Activity,
   RefreshCw,
 } from 'lucide-react';
-import { AppSettings, AiProvider, TranscriptionProvider, ResponseStyle } from '../../shared/types/index.js';
+import { AppSettings, AiProvider, TranscriptionProvider, ResponseStyle } from '../../../shared/types/index.js';
+import { LICENSE_BACKEND_URL } from '@shared/config';
 
 export const SettingsView: React.FC = () => {
   const [settings, setSettings] = useState<AppSettings | null>(null);
@@ -43,7 +44,7 @@ export const SettingsView: React.FC = () => {
     setHealthStatus('checking');
     setHealthMessage('Checking...');
     try {
-      const response = await fetch('https://bypassiqnew.onrender.com/api/health');
+      const response = await fetch(`${LICENSE_BACKEND_URL}/api/health`);
       const data = await response.json();
       if (data.status === 'ok' && data.database === 'connected') {
         setHealthStatus('connected');

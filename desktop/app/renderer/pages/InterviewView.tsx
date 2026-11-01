@@ -159,7 +159,9 @@ ${content}
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
+    // The tab lives inside <main class="overflow-hidden">, so without its own
+    // height + scroll container the generated questions were clipped and unreachable.
+    <div className="max-w-6xl mx-auto p-6 h-full overflow-y-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
           <Sparkles className="w-8 h-8 text-purple-400" />
@@ -208,9 +210,9 @@ ${content}
           <input
             type="number"
             min="5"
-            max="30"
+            max="15"
             value={questionCount}
-            onChange={(e) => setQuestionCount(Math.min(30, Math.max(5, parseInt(e.target.value) || 15)))}
+            onChange={(e) => setQuestionCount(Math.min(15, Math.max(5, parseInt(e.target.value) || 15)))}
             className="bg-slate-700 text-white px-3 py-2 rounded-lg border border-slate-600 w-32"
           />
         </div>
