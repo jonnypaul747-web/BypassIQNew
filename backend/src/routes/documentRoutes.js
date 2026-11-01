@@ -46,7 +46,7 @@ router.post('/documents/questions', readDocument, async (req, res) => {
       success: true,
       cached: true,
       documentName,
-      provider: 'openai',
+      provider: ai.provider,
       model: cached.model || ai.model,
       questionCount: cached.questions.length,
       usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },

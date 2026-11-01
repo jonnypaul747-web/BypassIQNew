@@ -1,4 +1,5 @@
 const path = require('path');
+const AI_PROVIDER = process.env.AI_PROVIDER || (process.env.OPENROUTER_API_KEY ? 'openrouter' : 'openai');
 
 // Resolved from this file, so subscriptions.db always lives in backend/ next to
 // server.js — no matter which directory the process is started from.
@@ -25,9 +26,11 @@ module.exports = {
   // Document → Q&A generation. This is the one feature where the server itself
   // calls an AI provider, so keep the context small to keep tokens (and cost) low.
   ai: {
-    // Prefer OPENAI_API_KEY; fall back to GEMINI_API_KEY for legacy setups.
-    apiKey: process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || '',
-    provider: process.env.AI_PROVIDER || 'openai',
+    // OpenRouter uses its own key; keep the existing OpenAI/Gemini fallbacks.
+    apiKey: AI_PROVIDER === 'openrouter'
+      ? process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || ''
+      : process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || '',
+    provider: AI_PROVIDER,
     model: process.env.AI_MODEL || 'openai/gpt-4o',
     maxDocumentChars: Number(process.env.AI_MAX_DOCUMENT_CHARS) || 6000,
     maxOutputTokens: Number(process.env.AI_MAX_OUTPUT_TOKENS) || 1400,

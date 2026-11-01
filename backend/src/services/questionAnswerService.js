@@ -1,4 +1,5 @@
 const { OpenAI } = require('openai');
+const { GoogleGenerativeAI } = require('@google/generative-ai');
 const CATEGORIES = ['Technical', 'Behavioral', 'Situational', 'Leadership', 'Role-specific'];
 
 const { ai } = require('../config');
@@ -13,7 +14,7 @@ async function generateQuestions({ text, documentName, count }) {
       status: 503,
       body: {
         success: false,
-        error: 'AI is not configured on the server. Set OPENAI_API_KEY (or GEMINI_API_KEY for legacy) and restart the backend.',
+        error: 'AI is not configured on the server. Set OPENROUTER_API_KEY for OpenRouter, OPENAI_API_KEY for OpenAI, or GEMINI_API_KEY for Gemini, then restart the backend.',
       },
     };
   }
@@ -21,9 +22,12 @@ async function generateQuestions({ text, documentName, count }) {
   const prompt = buildPrompt({ text, documentName, count });
 
   let content, usage;
-  if (ai.provider === 'openai') {
-    // Use OpenAI client
-    const openai = new OpenAI({ apiKey: ai.apiKey });
+  if (ai.provider === 'openai' || ai.provider === 'openrouter') {
+    // OpenRouter is OpenAI-compatible: same SDK, different baseURL.
+    const openai = new OpenAI({
+      apiKey: ai.apiKey,
+      baseURL: ai.provider === 'openrouter' ? 'https://openrouter.ai/api/v1' : undefined,
+    });
     try {
       const response = await openai.chat.completions.create({
         model: ai.model,
@@ -154,9 +158,9 @@ function parseQuestions(content, limit) {
 
 function usageBody(usage = {}) {
   return {
-    inputTokens: usage.promptTokenCount ?? null,
-    outputTokens: usage.candidatesTokenCount ?? null,
-    totalTokens: usage.totalTokenCount ?? null,
+    inputTokens: usage.prompt_tokens ?? usage.promptTokenCount ?? null,
+    outputTokens: usage.completion_tokens ?? usage.candidatesTokenCount ?? null,
+    totalTokens: usage.total_tokens ?? usage.totalTokenCount ?? null,
   };
 }
 
