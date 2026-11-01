@@ -1,7 +1,99 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { OpenAI } = require('openai');
 const { ai } = require('../config');
 
-const CATEGORIES = ['Technical', 'Behavioral', 'Situational', 'Leadership', 'Role-specific'];
+/**
+ * Generate interview questions using the configured AI provider.
+ * Supports Gemini (via @google/generative-ai) and OpenAI.
+ */
+async function generateQuestions({ text, documentName, count }) {
+  if (!ai.apiKey) {
+    return {
+      status: 503,
+      body: {
+        success: false,
+        error: 'AI is not configured on the server. Set OPENAI_API_KEY (or GEMINI_API_KEY for legacy) and restart the backend.',
+      },
+    };
+  }
+
+  const prompt = buildPrompt({ text, documentName, count });
+
+  let content, usage;
+  if (ai.provider === 'openai') {
+    // Use OpenAI client
+    const openai = new OpenAI({ apiKey: ai.apiKey });
+    try {
+      const response = await openai.chat.completions.create({
+        model: ai.model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        max_tokens: ai.maxOutputTokens,
+        response_format: { type: 'json_object' },
+      });
+      content = response.choices?.[0]?.message?.content || '';
+      usage = response.usage;
+    } catch (err) {
+      console.error('[Backend] OpenAI request failed:', err);
+      const reason = (err && err.message) || 'AI request failed';
+      return { status: 502, body: { success: false, error: reason } };
+    }
+  } else {
+    // Default to Gemini
+    const genAI = new GoogleGenerativeAI(ai.apiKey);
+    const model = genAI.getGenerativeModel({ model: ai.model });
+    try {
+      const result = await model.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.3,
+          maxOutputTokens: ai.maxOutputTokens,
+          responseMimeType: 'application/json',
+        },
+      });
+      content = result.response.text() || '';
+      usage = result.response.usageMetadata;
+    } catch (err) {
+      console.error('[Backend] Gemini AI request failed:', err);
+      const reason = (err && err.message) || 'AI request failed';
+      return { status: 502, body: { success: false, error: reason } };
+    }
+  }
+
+  let questions;
+  try {
+    questions = parseQuestions(content, count);
+  } catch (err) {
+    console.error('[Backend] Could not parse AI response:', content.slice(0, 300));
+    return {
+      status: 502,
+      body: { success: false, error: 'AI returned an invalid response. Please try again.' },
+    };
+  }
+
+  if (questions.length === 0) {
+    return {
+      status: 502,
+      body: { success: false, error: 'AI returned no usable questions. Try a document with more detail.' },
+    };
+  }
+
+  return {
+    status: 200,
+    body: {
+      success: true,
+      documentName,
+      provider: ai.provider,
+      model: ai.model,
+      questionCount: questions.length,
+      usage: usageBody(usage),
+      questions,
+    },
+  };
+}
+
+module.exports = { generateQuestions, CATEGORIES };
+
 
 /**
  * The whole prompt is deliberately small: short instructions, no examples, no
@@ -67,69 +159,4 @@ function usageBody(usage = {}) {
   };
 }
 
-async function generateQuestions({ text, documentName, count }) {
-  if (!ai.apiKey) {
-    return {
-      status: 503,
-      body: {
-        success: false,
-        error: 'AI is not configured on the server. Set GEMINI_API_KEY and restart the backend.',
-      },
-    };
-  }
 
-  const genAI = new GoogleGenerativeAI(ai.apiKey);
-  const model = genAI.getGenerativeModel({ model: ai.model });
-  const prompt = buildPrompt({ text, documentName, count });
-
-  let result;
-  try {
-    result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.3,
-        maxOutputTokens: ai.maxOutputTokens,
-        responseMimeType: 'application/json',
-      },
-    });
-  } catch (err) {
-    console.error('[Backend] AI request failed:', err);
-    const reason = (err && err.message) || 'AI request failed';
-    return { status: 502, body: { success: false, error: reason } };
-  }
-
-  const content = result.response.text() || '';
-
-  let questions;
-  try {
-    questions = parseQuestions(content, count);
-  } catch (err) {
-    console.error('[Backend] Could not parse AI response:', content.slice(0, 300));
-    return {
-      status: 502,
-      body: { success: false, error: 'AI returned an invalid response. Please try again.' },
-    };
-  }
-
-  if (questions.length === 0) {
-    return {
-      status: 502,
-      body: { success: false, error: 'AI returned no usable questions. Try a document with more detail.' },
-    };
-  }
-
-  return {
-    status: 200,
-    body: {
-      success: true,
-      documentName,
-      provider: 'gemini',
-      model: ai.model,
-      questionCount: questions.length,
-      usage: usageBody(result.response.usageMetadata),
-      questions,
-    },
-  };
-}
-
-module.exports = { generateQuestions, CATEGORIES };

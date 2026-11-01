@@ -25,9 +25,10 @@ module.exports = {
   // Document → Q&A generation. This is the one feature where the server itself
   // calls an AI provider, so keep the context small to keep tokens (and cost) low.
   ai: {
-    apiKey: process.env.GEMINI_API_KEY || '',
-    provider: process.env.AI_PROVIDER || 'gemini',
-    model: process.env.AI_MODEL || 'gemini-3.8-flash',
+    // Prefer OPENAI_API_KEY; fall back to GEMINI_API_KEY for legacy setups.
+    apiKey: process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || '',
+    provider: process.env.AI_PROVIDER || 'openai',
+    model: process.env.AI_MODEL || 'openai/gpt-4o',
     maxDocumentChars: Number(process.env.AI_MAX_DOCUMENT_CHARS) || 6000,
     maxOutputTokens: Number(process.env.AI_MAX_OUTPUT_TOKENS) || 1400,
     maxQuestions: Number(process.env.AI_MAX_QUESTIONS) || 15,
