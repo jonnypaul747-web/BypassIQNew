@@ -9,6 +9,19 @@ The backend now uses OpenRouter for AI-powered features:
 - **Resume Analysis**: Analyze and structure resume data
 - **Automatic Key Management**: Optional automatic API key generation using Management API
 
+## Hindi-English Voice Agent
+
+The live voice flow sends 16 kHz mono PCM from the desktop to the authenticated backend WebSocket at `/api/live/stream`. The backend batches the stream into short WAV windows and calls OpenRouter's Speech-to-Text endpoint with `deepgram/nova-3`; the same OpenRouter key is used for answer generation. The desktop uses its built-in speech synthesis for audio replies; no separate Deepgram or TTS provider key is needed.
+
+Keep `OPENROUTER_API_KEY` and `DEEPGRAM_API_KEY` only in the backend environment. `LIVE_CLASS_ACCESS_KEY` is a separate client-to-backend access secret and must match the value entered in the desktop app's Settings.
+
+1. Copy `backend/.env.example` to `backend/.env` and set `OPENROUTER_API_KEY`, `LIVE_CLASS_ACCESS_KEY`, `AI_PROVIDER=openrouter`, and a supported `AI_MODEL`.
+2. Install and start the backend with `cd backend && npm install && npm start`. The existing PostgreSQL database configuration is still required by backend startup.
+3. In the desktop app Settings, enter the matching Live Class Access Key and choose **Secure backend Voice Agent** as the transcription provider.
+4. Start Live Interview, select the system-audio source, and allow microphone access if microphone capture is enabled. Toggle **Speak replies** to enable local Hindi-English voice output.
+
+For local development, set `LICENSE_BACKEND_URL=http://localhost:3000` when launching the desktop app. The deployed default backend URL is used otherwise.
+
 ## Features
 
 ### 1. OpenRouter Chat Completion Service

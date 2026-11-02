@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const healthRoutes = require('./routes/healthRoutes');
 const documentRoutes = require('./routes/documentRoutes');
+const liveRoutes = require('./routes/liveRoutes');
 
 const app = express();
 
@@ -11,5 +12,6 @@ app.use(express.json());
 
 app.use('/api', healthRoutes);
 app.use('/api', documentRoutes);
+app.use('/api', liveRoutes);
 
 module.exports = app;

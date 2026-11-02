@@ -8,10 +8,13 @@ const app = require('./src/app');
 async function start() {
   await initDatabase();
 
-  app.listen(port, () => {
+  const server = app.listen(port, () => {
     console.log(`[Backend] License server running on port ${port}`);
     console.log(`[Backend] Database: ${dbUrl}`);
   });
+
+  // Initialize WebSocket server
+  require('./src/services/voiceAgentService').initWebSocket(server);
 }
 
 start().catch((err) => {

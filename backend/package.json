@@ -21,6 +21,9 @@
     "pdf-parse": "^1.1.1",
     "pdfjs-dist": "^4.10.38",
     "pg": "^8.13.1",
-    "tesseract.js": "^7.0.0"
+    "tesseract.js": "^7.0.0",
+    "ws": "^8.18.0",
+    "@deepgram/sdk": "^2.0.0",
+    "@google-cloud/text-to-speech": "^5.0.0"
   }
 }

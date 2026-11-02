@@ -13,6 +13,7 @@ module.exports = {
   // Shared secret for server-to-server calls (optional). Customers normally send
   // their license key instead — see src/middleware/apiKeyAuth.js.
   apiKey: process.env.API_KEY || '',
+  liveClassAccessKey: process.env.LIVE_CLASS_ACCESS_KEY || '',
 
   // OCR fallback for PDFs that are images (scanned resumes) with no text layer.
   // Rendering + OCR is slow, so the page count is capped.
@@ -26,10 +27,11 @@ module.exports = {
   // Document → Q&A generation. This is the one feature where the server itself
   // calls an AI provider, so keep the context small to keep tokens (and cost) low.
   ai: {
-    // OpenRouter uses its own key; keep the existing OpenAI/Gemini fallbacks.
+    // OpenRouter credentials must never fall back to another provider's key.
     apiKey: AI_PROVIDER === 'openrouter'
-      ? process.env.OPENROUTER_API_KEY || process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || ''
+      ? process.env.OPENROUTER_API_KEY || ''
       : process.env.OPENAI_API_KEY || process.env.GEMINI_API_KEY || '',
+    deepgramApiKey: process.env.DEEPGRAM_API_KEY || '',
     provider: AI_PROVIDER,
     model: process.env.AI_MODEL || 'openai/gpt-4o',
     maxDocumentChars: Number(process.env.AI_MAX_DOCUMENT_CHARS) || 6000,
